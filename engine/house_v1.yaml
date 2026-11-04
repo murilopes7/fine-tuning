@@ -1,0 +1,34 @@
+# Definição declarativa da casa (fonte única da verdade para simulador, dataset, avaliação e viewer 3D)
+# Convenção de coordenadas (compatível com Three.js): X = direita, Y = altura, Z = profundidade, em metros.
+# 'rect' de cada cômodo = [x, z, largura, profundidade]; 'pos' de dispositivo = [x, y, z].
+world_version: 1
+tick_minutes: 10          # passo de tempo do simulador
+wall_height: 2.6
+rooms:
+  - {id: bedroom,  type: bedroom,  rect: [0.0, 0.0, 4.0, 3.5]}
+  - {id: bathroom, type: bathroom, rect: [4.0, 0.0, 2.5, 3.5]}
+  - {id: kitchen,  type: kitchen,  rect: [0.0, 3.5, 3.5, 3.5]}
+  - {id: living,   type: living,   rect: [3.5, 3.5, 5.0, 3.5]}
+doors:                    # grafo de conectividade (também usado para pathfinding do morador)
+  - {id: d_bed_bath,  between: [bedroom, bathroom],  pos: [4.0, 1.75]}
+  - {id: d_bed_liv,   between: [bedroom, living],    pos: [3.75, 3.5]}
+  - {id: d_kit_liv,   between: [kitchen, living],    pos: [3.5, 5.25]}
+  - {id: d_bath_liv,  between: [bathroom, living],   pos: [5.25, 3.5]}
+  - {id: front_door,  between: [living, outside],    pos: [8.5, 5.25]}
+devices:                  # entity_id no estilo Home Assistant: dominio.objeto
+  - {id: light.bedroom,     domain: light,   room: bedroom,  pos: [2.0, 2.5, 1.75]}
+  - {id: light.bathroom,    domain: light,   room: bathroom, pos: [5.25, 2.5, 1.75]}
+  - {id: light.kitchen,     domain: light,   room: kitchen,  pos: [1.75, 2.5, 5.25]}
+  - {id: light.living,      domain: light,   room: living,   pos: [6.0, 2.5, 5.25]}
+  - {id: climate.house,     domain: climate, room: living,   pos: [6.0, 1.5, 3.6]}
+  - {id: switch.coffee,     domain: switch,  room: kitchen,  pos: [0.4, 0.95, 4.0]}
+  - {id: lock.front_door,   domain: lock,    room: living,   pos: [8.45, 1.1, 5.25]}
+sensors:
+  - {id: binary_sensor.motion_bedroom,  type: motion,      room: bedroom}
+  - {id: binary_sensor.motion_bathroom, type: motion,      room: bathroom}
+  - {id: binary_sensor.motion_kitchen,  type: motion,      room: kitchen}
+  - {id: binary_sensor.motion_living,   type: motion,      room: living}
+  - {id: binary_sensor.front_door,      type: contact,     room: living}
+  - {id: sensor.temp_indoor,            type: temperature, room: living}
+  - {id: sensor.temp_outdoor,           type: temperature, room: outside}
+power_w: {light: 10, switch: 1000, climate: 1500}   # consumo nominal, usado para energia (Wh)
