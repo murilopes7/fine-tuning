@@ -1,0 +1,20 @@
+# Smart House SLM: dependências do projeto
+# Python >= 3.10 (world.py usa a sintaxe `float | None`)
+# Instalar: pip install -r requirements.txt
+
+# --- Núcleo: engine/ (usado hoje por world.py; testado) ---
+pyyaml>=6.0
+
+# --- Avaliação e baselines (planejado; ainda não testado neste repositório) ---
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11            # paired bootstrap e testes estatísticos
+scikit-learn>=1.3      # baseline A2 (gradient boosting)
+matplotlib>=3.8        # figuras em figures/
+pytest>=8.0            # testes do world model
+
+# --- Treino: NÃO instale localmente, rode no Colab (T4) ---
+# No Colab, `pip install unsloth` traz versões compatíveis de transformers, trl, peft,
+# bitsandbytes, accelerate e datasets. Não fixamos essas versões aqui de propósito.
+# Para reprodutibilidade, salve as versões de cada run:
+#   pip freeze > results/<run_id>_env.txt
