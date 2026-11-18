@@ -1,0 +1,309 @@
+SMART HOUSE SLM - ROADMAP AND REPOSITORY STRUCTURE
+Last updated: 2026-11-16 | Overall progress estimate: about 35% (rough, weighted by effort)
+Status legend: DONE | DRAFT (exists, needs review) | NEXT | TODO | PARTIAL
+
+======================================================================
+A. HOW TO USE THIS FILE
+======================================================================
+1. Work one step at a time, in the order of section B.
+2. Before leaving a step, run the checkpoint routine (section F).
+3. Update the STATUS lines here when a step changes. Keep this file in the
+   repository (root or docs/ROADMAP.txt).
+
+======================================================================
+B. ROADMAP (steps 0 to 12)
+Format per step: status, goal, "Mine" (what this project uses), three
+alternatives, files, and "Done when" (acceptance criteria).
+======================================================================
+
+----------------------------------------------------------------------
+STEP 0 - Research question and design                  STATUS: DRAFT
+----------------------------------------------------------------------
+Goal: state falsifiable questions, baselines, metrics and ablations BEFORE
+running experiments.
+Mine: hypotheses H1-H4 with numeric thresholds, arms A0-A10, splits Train /
+  Validation / Test A / Test B / Test C (/ Test D), paired bootstrap, Holm.
+Alternatives: reproduce a published result and change one variable;
+  ablation-first design; design-science cycles (build, evaluate, refine).
+Files: README.md, README.pt-BR.md, PROTOCOL.md (v0.2 draft).
+Done when: advisor reviewed PROTOCOL.md, TBD items are filled, then
+  `git tag protocol-v1` BEFORE the first evaluation on any test split.
+
+----------------------------------------------------------------------
+STEP 1 - World model (rooms, devices, state)             STATUS: DONE
+----------------------------------------------------------------------
+Mine: 4 rooms, 7 devices (4 lights, climate, coffee switch, front-door
+  lock), 7 sensors, 10-minute tick, Home Assistant-style entity ids,
+  finite action space (26 legal changes from the initial state),
+  first-order thermal model, observation with noise and missing readings.
+Alternatives: Home Assistant entity/service schema (mine); VirtualHome-style
+  atomic action programs; OpenSHS-style sensor/actuator catalog.
+Files: engine/house_v1.yaml, engine/world.py.
+Done when: tests pass; world_hash (currently 052f8bd9f28c) is logged in
+  every dataset and run.
+Caveat: thermal and energy constants are NOT calibrated.
+
+----------------------------------------------------------------------
+STEP 2 - Resident behavior model                         STATUS: DONE
+----------------------------------------------------------------------
+Mine: 30 simulated residents with hidden preferences (home/away setpoint,
+  coffee habit, p_react, p_forget); daily routine = anchors (wake, leave,
+  return, bed) + semi-Markov activities with gamma durations; manual
+  habits that leak the preferences into the log; split by resident
+  (20 train / 4 validation / 6 test).
+Alternatives: semi-Markov chains fitted to real data; human-driven avatar
+  capture (OpenSHS style); LLM-driven generative agents (use offline,
+  then freeze).
+Files: engine/resident.py.
+Done when: tests pass; preferences are inferable from history (checked by
+  a test). Parameters are invented, not fitted to real data.
+
+----------------------------------------------------------------------
+STEP 3 - Teacher (labels)                                STATUS: DONE
+----------------------------------------------------------------------
+Mine: privileged oracle (knows hidden preferences and the true schedule).
+  Label = next room + actions that move devices to the preferred state;
+  30-minute pre-heat lookahead; 60-minute hold after a manual thermostat
+  change. Two data modes: open-loop and teacher-in-loop.
+Alternatives: LLM few-shot teacher (temperature 0, schema validation,
+  discard invalid outputs); human annotation (small gold set);
+  labels learned from real logs.
+Files: engine/teacher.py.
+Done when: tests pass; reviewed by the advisor ("preferred" definition:
+  dark hours 07:00-18:00, 30-minute pre-heat).
+
+----------------------------------------------------------------------
+STEP 4 - Schema and serialization                        STATUS: NEXT
+----------------------------------------------------------------------
+Goal: turn simulator rows into the text the model sees (input) and writes
+  (output), with a history window.
+Mine (draft): compact YAML input built ONLY from observe() output, device
+  states and a history of recent manual actions; output "next:" and "do:".
+Alternatives: JSON function calling; a tiny custom DSL; constrained
+  decoding with a grammar (llama.cpp GBNF, Outlines) so output is valid.
+Files: engine/serialize.py, tests/test_serialize.py.
+Done when: token-length report done; round-trip parse of outputs works;
+  LEAKAGE TEST passes (no privileged field reaches the input, see C.3).
+
+----------------------------------------------------------------------
+STEP 5 - Data generation and preprocessing                STATUS: TODO
+----------------------------------------------------------------------
+Mine (plan): 30 residents x 80 days; days 0-59 train, 60-79 Test A;
+  resident split gives Test B; Test C adds missing/noisy readings and a
+  layout change; dedupe; keep all action rows and 5% of idle rows;
+  data mode (open-loop / teacher-in-loop / mix) is an ablation.
+Alternatives: simulator replication (OpenSHS style); template-based
+  synthetic data (Home LLM style); mixing in real data.
+Files: engine/build_dataset.py, tests/test_dataset.py, data/MANIFEST.json.
+Done when: every test split has at least 1,000 rows; manifest has hashes;
+  splits are by resident or day, never by row.
+
+----------------------------------------------------------------------
+STEP 6 - 3D web view                                      STATUS: TODO
+----------------------------------------------------------------------
+Goal: an instrument for debugging, error replay and demos. It only READS
+  logged states and never changes simulator state. Time-box: about 15%
+  of total effort.
+Mine (settings): Three.js + OrbitControls; perspective FOV about 45,
+  damping on, maxPolarAngle about 80 deg, pixel ratio capped at 2;
+  one directional light (2048 PCFSoft shadow map) + hemisphere light;
+  one PointLight per lamp driven by device state; resident as a capsule
+  or glTF moving along the room graph; InstancedMesh for repeated props;
+  pin exact library versions.
+Alternatives: Babylon.js; PlayCanvas; Unity WebGL.
+Files: web/ (index.html, src/, public/scene.json exported by
+  world.scene_json).
+Done when: replays a logged day with timeline scrubber and shows model
+  vs teacher actions side by side.
+
+----------------------------------------------------------------------
+STEP 7 - Simulation engine (single source of truth)     STATUS: PARTIAL
+----------------------------------------------------------------------
+Done: headless, seeded engine; paired random streams; teacher hook.
+Missing: model-in-the-loop interface, safety guard, event log replay,
+  retire the old duplicated JS logic.
+Mine: fixed time step, seeded RNG, append-only event log, replayable runs.
+Alternatives: discrete-event (SimPy); agent-based (Mesa); ECS/game loop.
+Done when: one engine feeds data generation, evaluation and the web view.
+
+----------------------------------------------------------------------
+STEP 8 - Fine-tuning (the core)                           STATUS: TODO
+----------------------------------------------------------------------
+Mine (A6): 4-bit NF4 base, LoRA r=16 alpha=16 on all linear layers,
+  dropout 0, lr 2e-4, 1 epoch, effective batch 16, 8-bit AdamW, linear
+  schedule, loss on the answer only, max sequence about 384.
+  Base models: Llama-3.2-3B-Instruct (main), Qwen3-4B-Instruct-2507.
+Alternatives: full fine-tuning (small model); LoRA variants (DoRA, rsLoRA,
+  higher rank) + DPO/GRPO second stage; (IA)3 / prompt tuning; and
+  no training at all (few-shot / RAG), which is a mandatory baseline.
+Files: train/qlora.py, train/configs/*.yaml, notebooks/ (Colab).
+Done when: first run on a small subset trains, logs a results row, and the
+  adapter is saved to Drive or the Hub.
+Note: build baselines A0-A5 (Step 10) BEFORE spending GPU time here.
+
+----------------------------------------------------------------------
+STEP 9 - Serving and model-in-the-loop                    STATUS: TODO
+----------------------------------------------------------------------
+Mine: GGUF q4_k_m, temperature 0, max_new_tokens 48, grammar-constrained
+  output, rule-based guard that rejects unsafe actions.
+Alternatives: llama.cpp / Ollama; vLLM; in-browser WebGPU runtimes.
+Files: serve/server.py, serve/guard.py.
+Done when: the simulator can call the model, and latency is measured.
+
+----------------------------------------------------------------------
+STEP 10 - Evaluation                                      STATUS: TODO
+----------------------------------------------------------------------
+Mine: exact action match (primary), next-room accuracy, macro-F1, format
+  validity, safety violation rate, outcome success (closed-loop),
+  resilience, efficiency; 3 seeds, greedy decoding, paired bootstrap
+  (10,000 resamples), Holm correction; ablations on data size, rank,
+  history window, few-shot k, method.
+Alternatives: static held-out accuracy; closed-loop rollouts; user study.
+Files: eval/metrics.py, eval/bootstrap.py, eval/baselines.py,
+  eval/run_eval.py, eval/prompts/, results/runs.csv, figures/.
+Done when: arms A0 and A1 run end to end and reproduce expected values.
+
+----------------------------------------------------------------------
+STEP 11 - Tracking and reproducibility                  STATUS: PARTIAL
+----------------------------------------------------------------------
+Done: requirements.txt, world_hash, results schema defined.
+Missing: run logger, dataset card, model card.
+Mine: log config, seed, git hash, world_hash, data_hash, library versions,
+  raw model outputs for every run.
+Alternatives: Weights & Biases; MLflow; TensorBoard + DVC.
+
+----------------------------------------------------------------------
+STEP 12 - Validity, report and presentation               STATUS: TODO
+----------------------------------------------------------------------
+Mine: error analysis (20 sampled mistakes per arm), Test D on real data if
+  available, limitations, technical report, CIUFLA presentation.
+Alternatives: domain randomization; small real-data fine-tune;
+  human-subject study.
+Files: docs/ (report, dataset card, model card).
+Main threat: a model trained on rule-generated data mostly learns the rules.
+
+SUGGESTED ORDER FROM HERE: 4 -> 5 -> 10 (baselines A0-A5 first) -> 8 ->
+9 and 7 (closed loop) -> 6 in parallel (time-boxed) -> 12.
+
+======================================================================
+C. REPOSITORY STRUCTURE (target)
+======================================================================
+C.1 Folder tree  ([EXISTS] = already created in this project)
+
+smart-house-slm/
+|-- README.md                  [EXISTS] front page (English)
+|-- README.pt-BR.md            [EXISTS] front page (Portuguese)
+|-- PROTOCOL.md                [EXISTS, DRAFT] frozen later with protocol-v1
+|-- ROADMAP.txt                [EXISTS] this file
+|-- requirements.txt           [EXISTS]
+|-- pytest.ini                 [EXISTS]
+|-- .gitignore                 [EXISTS]
+|-- .github/workflows/ci.yml   [EXISTS] runs pytest on Python 3.10 and 3.12
+|-- engine/
+|   |-- house_v1.yaml          [EXISTS] Step 1
+|   |-- world.py               [EXISTS] Step 1
+|   |-- resident.py            [EXISTS] Step 2
+|   |-- teacher.py             [EXISTS] Step 3
+|   |-- serialize.py           [TODO]   Step 4
+|   `-- build_dataset.py       [TODO]   Step 5
+|-- tests/
+|   |-- test_engine.py         [EXISTS] 18 tests (Steps 1-3)
+|   |-- test_serialize.py      [TODO]   Step 4 (includes leakage test)
+|   `-- test_dataset.py        [TODO]   Step 5
+|-- data/                      git-ignored, except the two items below
+|   |-- MANIFEST.json          [TODO] committed: parameters and hashes
+|   |-- sample/                [TODO] committed: about 200 example rows
+|   `-- train.jsonl, val.jsonl, test_a.jsonl, test_b.jsonl,
+|       test_c.jsonl           NOT in Git (use DVC, Git LFS or the HF Hub)
+|-- train/
+|   |-- qlora.py               [TODO] Step 8
+|   `-- configs/               [TODO] one YAML per arm
+|-- notebooks/                 [TODO] Colab notebooks
+|-- eval/
+|   |-- metrics.py, bootstrap.py, baselines.py, run_eval.py   [TODO]
+|   `-- prompts/               [TODO] few-shot prompt variants
+|-- serve/                     [TODO] server.py, guard.py
+|-- web/                       [TODO] 3D viewer (reads logs only)
+|-- results/                   [TODO] runs.csv (one row per arm/seed/split)
+|-- figures/                   [TODO]
+|-- docs/                      [TODO] report, dataset card, model card
+`-- legacy/                    old notebook and 2D JS demo (not used)
+
+C.2 What goes into Git and what does not
+  In Git: code, tests, configs, house_v1.yaml, PROTOCOL.md, results/*.csv,
+    figures, data/MANIFEST.json, data/sample/.
+  Not in Git: full datasets, model weights (.safetensors, .gguf, .bin),
+    adapters (push them to the Hugging Face Hub or Drive), .env, secrets.
+
+C.3 Privileged fields (must NEVER reach the model input)
+  act, room, next_act, next_room, mins_to_next, label_do, auto, t_in and
+  t_out (noise-free), and all persona parameters. The model may only see:
+  observe() output, device states at decision time, time of day, and the
+  history of recent manual actions.
+
+======================================================================
+D. DATA SCHEMAS
+======================================================================
+D.1 Simulation log row (JSONL, one row per resident per 10-minute tick)
+  pid, day, minute, act, room, next_act, next_room, mins_to_next,
+  t_in, t_out, door_open, heating, wh, state{entity: value},
+  manual[list of "entity=value"], label_do[list], auto[list]
+  Note: "state" is the device state AFTER actions of that tick. The state
+  at decision time is the previous row's state.
+
+D.2 Training example (Step 4 will finalize; this is a draft)
+  input (YAML):
+    t: Mon 18:00
+    obs: {motion: [living], door: closed, temp_in: 20.4, temp_out: 8.1}
+    dev: {lights: [], heat: 20.5, coffee: off, lock: unlocked}
+    hist: [Sun 18:05 climate.house=20.5 manual, ...]
+  output:
+    next: kitchen
+    do: [light.living=on]
+
+D.3 results/runs.csv (one row per arm, seed and split)
+  run_id, arm, base_model, seed, split, n, exact, next_acc, f1_macro,
+  fmt_valid, unsafe_rate, latency_ms, vram_gb, trainable_params,
+  train_minutes, git_hash, world_hash, data_hash
+  (the README schema lacks world_hash: add it.)
+
+D.4 data/MANIFEST.json (example fields, values are placeholders)
+  world_version, world_hash, tick_minutes, seed, mode (open_loop |
+  teacher_in_loop | mix), idle_keep, n_residents, splits{train, val, test
+  lists of ids}, days{train, test_a}, rows per split, data_hash.
+
+D.5 Run ids: <arm>_<base_model>_s<seed>_<YYYYMMDD-HHMM>
+  Example: A6_llama3b_s0_20261201-1530
+
+======================================================================
+E. GIT WORKFLOW
+======================================================================
+Branch per step (for example step4-serialize), merge into main when the
+checkpoint routine passes.
+Commit messages: "Step N: <what changed>".
+Tags: checkpoint-step3 (now), checkpoint-step4, ...; protocol-v1 (after
+  advisor approval, before the first test evaluation); results-v1 (after
+  the main grid); paper-v1.
+Start with a PRIVATE repository. Ask the advisor before making it public
+  and about the license.
+
+======================================================================
+F. CHECKPOINT ROUTINE (before leaving every step)
+======================================================================
+[ ] pip install -r requirements.txt && pytest -q  -> all green, locally
+[ ] GitHub Actions is green
+[ ] Read about 30 rows of real output by hand (labels make sense?)
+[ ] Leakage check (C.3) still passes
+[ ] PROTOCOL.md TBDs and Deviations updated
+[ ] git commit + git tag checkpoint-stepN + push
+[ ] Update the STATUS lines in this file
+
+======================================================================
+G. KNOWN OPEN RISKS (as of the date above)
+======================================================================
+- All simulator parameters are invented, not fitted to real data.
+- The advisor has not yet reviewed PROTOCOL.md or the teacher definition.
+- Code was tested on Python 3.12 only; CI will test 3.10.
+- Nothing has been trained or evaluated yet: there are no scientific
+  results.
+- Old notebook and JS demo are out of sync with the new engine.
