@@ -1,4 +1,5 @@
 """Tests for the Step 5 pilot dataset generator."""
+
 import json
 import sys
 from pathlib import Path
@@ -7,9 +8,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "engine"))
-from build_dataset import build
-from serialize import parse_output
-from world import load_house
+from scripts.dataset.build_dataset import build, build_protocol
+from engine.serialize import parse_output
+from engine.world import load_house
 
 
 def read_jsonl(path):
@@ -22,8 +23,10 @@ def test_pilot_is_reproducible_and_resident_disjoint(tmp_path):
     ma = build(house_path=house_path, out=a)
     mb = build(house_path=house_path, out=b)
     assert ma == mb
-    assert all((a / name).read_bytes() == (b / name).read_bytes()
-               for name in ("train.jsonl", "val.jsonl", "test.jsonl", "manifest.json"))
+    assert all(
+        (a / name).read_bytes() == (b / name).read_bytes()
+        for name in ("train.jsonl", "val.jsonl", "test.jsonl", "manifest.json")
+    )
     house = load_house(str(house_path))
     seen = set()
     for split in ("train", "val", "test"):
@@ -42,15 +45,26 @@ def test_pilot_is_reproducible_and_resident_disjoint(tmp_path):
 
 def test_invalid_split_rejected(tmp_path):
     with pytest.raises(ValueError):
-        build(house_path=ROOT / "engine" / "house_v1.yaml", out=tmp_path,
-              residents=3, n_val=2, n_test=1)
+        build(
+            house_path=ROOT / "engine" / "house_v1.yaml",
+            out=tmp_path,
+            residents=3,
+            n_val=2,
+            n_test=1,
+        )
 
 
 def test_protocol_temporal_and_resident_isolation(tmp_path):
-    from build_dataset import build_protocol
-    manifest = build_protocol(house_path=ROOT / "engine" / "house_v1.yaml",
-                              out=tmp_path, residents=4, days=3, train_days=2,
-                              n_val=1, n_test=1, seed=0)
+    manifest = build_protocol(
+        house_path=ROOT / "engine" / "house_v1.yaml",
+        out=tmp_path,
+        residents=4,
+        days=3,
+        train_days=2,
+        n_val=1,
+        n_test=1,
+        seed=0,
+    )
     groups = manifest["resident_splits"]
     assert [len(groups[k]) for k in ("train", "val", "test")] == [2, 1, 1]
     expected = {"train": 576, "test_a": 288, "val": 432, "test_b": 432}
@@ -75,11 +89,19 @@ def test_protocol_temporal_and_resident_isolation(tmp_path):
 
 
 def test_protocol_determinism(tmp_path):
-    from build_dataset import build_protocol
-    kw = dict(house_path=ROOT / "engine" / "house_v1.yaml", residents=4,
-              days=3, train_days=2, n_val=1, n_test=1, seed=0)
+    kw = dict(
+        house_path=ROOT / "engine" / "house_v1.yaml",
+        residents=4,
+        days=3,
+        train_days=2,
+        n_val=1,
+        n_test=1,
+        seed=0,
+    )
     a = build_protocol(out=tmp_path / "a", **kw)
     b = build_protocol(out=tmp_path / "b", **kw)
     assert a == b
     for split in ("train", "val", "test_a", "test_b"):
-        assert (tmp_path / "a" / f"{split}.jsonl").read_bytes() == (tmp_path / "b" / f"{split}.jsonl").read_bytes()
+        assert (tmp_path / "a" / f"{split}.jsonl").read_bytes() == (
+            tmp_path / "b" / f"{split}.jsonl"
+        ).read_bytes()

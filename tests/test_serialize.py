@@ -9,10 +9,10 @@ import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "engine"))
-from world import initial_state, load_house, observe
-from resident import sample_persona, simulate
-from teacher import oracle
-from serialize import (
+from engine.world import initial_state, load_house, observe
+from engine.resident import sample_persona, simulate
+from engine.teacher import oracle
+from engine.serialize import (
     serialize_input,
     serialize_output,
     parse_output,
