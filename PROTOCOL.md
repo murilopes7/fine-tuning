@@ -52,7 +52,8 @@ Base models: `Llama-3.2-3B-Instruct` (principal), `Qwen3-4B-Instruct-2507` (repl
 
 | Arm | Descrição | Settings fixos |
 |-----|-----------|----------------|
-| A0 | Sempre "do nothing" | sanity floor |
+| A0 | Sempre "do nothing": `do: []`, `next: outside` fixo | sanity floor; sem treino |
+| A0b | Classe majoritária: conjunto completo de ações mais frequente no Train (incluindo `[]`); `next` = cômodo mais frequente no Train | frequências somente do Train; empates em ordem lexicográfica |
 | A1 | Rule policy (teacher) | reference ceiling |
 | A2 | ML clássico (gradient boosting ou GRU) | mesmas features |
 | A3 | Zero-shot | temperature 0, `max_new_tokens = 48` |
@@ -64,7 +65,7 @@ Base models: `Llama-3.2-3B-Instruct` (principal), `Qwen3-4B-Instruct-2507` (repl
 | A9 | Full fine-tuning de ~0,5B | lr ≈ 1e-5, optimizer de 8 bits |
 | A10 | A6 + DPO | beta 0,1; rejected = ações inseguras ou erradas geradas pelo simulador |
 
-Todos os arms usam o mesmo system prompt, parser, decoding (greedy), pool de treino e splits. O prompt few-shot conta nos tokens reportados. Pelo menos 3 variantes de prompt são testadas; a melhor é escolhida **só em Validation**.
+A0 e A0b são baselines determinísticos sem LLM: não usam prompt nem decoding. A0b estima separadamente as modas de `next` e do conjunto completo `do` usando exclusivamente Train (sem acesso aos rótulos de Validation/Test). Os demais arms com LLM usam o mesmo system prompt, parser, decoding (greedy), pool de treino e splits. O prompt few-shot conta nos tokens reportados. Pelo menos 3 variantes de prompt são testadas; a melhor é escolhida **só em Validation**.
 
 ## 6. Métricas
 
