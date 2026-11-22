@@ -12,4 +12,4 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -r requirements.txt
-      - run: pytest -q
+      - run: python -m pytest tests/ -q

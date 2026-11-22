@@ -1,3 +1,9 @@
+# Generated datasets
+data/protocol_splits/
+data/split_smoke/
+data/benchmark/
+
+#Python cache
 __pycache__/
 *.pyc
 .venv/
