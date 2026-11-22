@@ -211,3 +211,18 @@ Registrar em todo run: configuração, seed, hash do git, versões das bibliotec
 - HomeBench: evaluating LLMs in smart homes with valid and invalid instructions, arXiv:2505.19628
 - Paul et al., *Enabling Device Control Planning Capabilities of Small Language Model*, ICASSP 2024
 - Cruz, Rettore, Santos, *Análise do uso de Modelos de Linguagem de Grande Escala na Geração de Códigos para Automação Residencial*, WebMedia 2025, doi:10.5753/webmedia.2025.15971
+
+## Step 5 evaluation protocol update (2026-11-21)
+
+The natural, unfiltered distributions are now the **primary** evaluation view for Validation, Test A, Test B and paired Test C. Training retains all action-bearing rows plus 5% sampled idle rows; filtered evaluation and action-only scores are secondary views. Train: 20 residents × days 0–59 (172,800 ticks); Validation: 4 held-out residents × days 0–79 (46,080); Test A: the training residents × days 60–79 (57,600); Test B: 6 unseen residents × days 0–79 (69,120).
+
+Test C is **paired missingness stress testing** of Test B at 10%, 20% and 30% additional independently sampled missing sensor values (20% is primary for H4); labels, IDs, manual-event history, device state and baseline temperature noise remain unchanged. Layout changes are exploratory, **not** a Test C factor. Missing motion is indistinguishable from a false sensor under the current list-based encoding.
+
+From the repository root, after adding the new scripts:
+
+```bash
+python -m scripts.dataset.build_test_c
+python -m scripts.dataset.verify_test_c
+```
+
+By design, the generator refuses to overwrite an existing Test C directory. The full dataset and event-history structural checks have passed according to the local audit; generating Test C, the eval-harness smoke test, validation-only prompt selection and advisor approval remain prerequisites for the `protocol-v1` tag. See `PROTOCOL.md` and `docs/STEP5_DATASET_METHODS.md`.
