@@ -42,7 +42,7 @@ The 3D view is an **instrument, not a result**: it replays logged states for deb
 
 ```mermaid
 flowchart TD
-  N["No weight change"] --> A0["A0 majority"] & A1["A1 rules (teacher)"] & A3["A3 zero-shot"] & A4["A4 few-shot"] & A5["A5 few-shot + history retrieval"]
+  N["No weight change"] --> A0["A0 do nothing"] & A0b["A0b majority"] & A1["A1 rules (teacher)"] & A3["A3 zero-shot"] & A4["A4 few-shot"] & A5["A5 few-shot + history retrieval"]
   L["Light training"] --> A6["A6 QLoRA SFT (main)"] & A7["A7 DoRA / rsLoRA"] & A8["A8 IA3 / prompt tuning"]
   H["Heavy training"] --> A9["A9 full fine-tune, 0.5B"]
   A6 --> A10["A10 + DPO / GRPO"]
@@ -51,7 +51,8 @@ flowchart TD
 
 | Arm | Paradigm | Training | Key settings |
 |-----|----------|----------|--------------|
-| A0 | Always "do nothing" | none | sanity floor |
+| A0 | Always "do nothing" (`do: []`, `next: outside`) | none | sanity floor |
+| A0b | Majority class: most common `do` set and `next` room in Train | frequency counts | no Validation/Test labels |
 | A1 | Rule policy (the teacher) | none | reference ceiling, not a competitor |
 | A2 | Classical ML on the same features | yes (small) | gradient-boosted trees or GRU; no LLM, to test whether an LLM is needed |
 | A3 | Base model, zero-shot | none | temperature 0, `max_new_tokens=48`, same parser as tuned arms |
@@ -148,7 +149,8 @@ Compute budget: the primary grid is roughly 60 to 80 short runs. On a free Colab
 
 | Arm | Test A | Test B | Test C (20% missing) | Format valid | Unsafe rate | p50 latency (ms) | Peak VRAM (GB) | Trainable params |
 |-----|--------|--------|----------------------|--------------|-------------|------------------|----------------|------------------|
-| A0 majority | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
+| A0 do nothing | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
+| A0b majority | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
 | A1 rules | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
 | A2 classical ML | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | A3 zero-shot | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |

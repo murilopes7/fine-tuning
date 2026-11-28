@@ -42,7 +42,7 @@ A visualização 3D é um **instrumento, não um resultado**: ela reproduz estad
 
 ```mermaid
 flowchart TD
-  N["Sem alterar pesos"] --> A0["A0 maioria"] & A1["A1 regras (teacher)"] & A3["A3 zero-shot"] & A4["A4 few-shot"] & A5["A5 few-shot + history retrieval"]
+  N["Sem alterar pesos"] --> A0["A0 não fazer nada"] & A0b["A0b maioria"] & A1["A1 regras (teacher)"] & A3["A3 zero-shot"] & A4["A4 few-shot"] & A5["A5 few-shot + history retrieval"]
   L["Treino leve"] --> A6["A6 QLoRA SFT (principal)"] & A7["A7 DoRA / rsLoRA"] & A8["A8 IA3 / prompt tuning"]
   H["Treino pesado"] --> A9["A9 full fine-tuning, 0,5B"]
   A6 --> A10["A10 + DPO / GRPO"]
@@ -51,7 +51,8 @@ flowchart TD
 
 | Arm | Paradigma | Treino | Configurações principais |
 |-------|-----------|--------|--------------------------|
-| A0 | Sempre "não fazer nada" | nenhum | sanity floor |
+| A0 | Sempre "não fazer nada" (`do: []`, `next: outside`) | nenhum | sanity floor |
+| A0b | Classe majoritária: moda de `do` e `next` no Train | contagem de frequências | sem dados de Validation/Test |
 | A1 | Rule policy (o teacher) | nenhum | reference ceiling, não é um concorrente |
 | A2 | ML clássico nas mesmas features | sim (pequeno) | árvores com gradient boosting ou GRU; sem LLM, para testar se um LLM é necessário |
 | A3 | Modelo base, zero-shot | nenhum | temperatura 0, `max_new_tokens=48`, mesmo parser dos arms ajustados |
@@ -150,7 +151,8 @@ Compute budget: a grade primária tem cerca de 60 a 80 runs curtos. Em uma T4 gr
 
 | Arm | Teste A | Teste B | Teste C (20% ausentes) | Format valid | Unsafe rate | p50 latency (ms) | Peak VRAM (GB) | Trainable params |
 |-------|---------|---------|------------------------|----------------|-------------------|-------------------|-------------------|-----------------------|
-| A0 maioria | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
+| A0 não fazer nada | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
+| A0b maioria | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
 | A1 regras | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |
 | A2 ML clássico | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | A3 zero-shot | TBD | TBD | TBD | TBD | TBD | TBD | TBD | 0 |

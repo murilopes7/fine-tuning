@@ -12,7 +12,7 @@ import random
 import statistics
 from dataclasses import dataclass
 
-from world import (
+from .world import (
     apply,
     energy_wh,
     initial_state,
@@ -296,8 +296,12 @@ def simulate(
                 "state": dict(state),
                 "manual": manual,
             }
+
             if teacher is not None:
-                row["label_do"], row["auto"] = label, auto
+                row["label_do"] = label
+                row["auto"] = auto
+
+                # Record the state before teacher and manual actions.
                 row["decision"] = {
                     "state": decision_state,
                     "t_in": decision_t_in,
@@ -305,6 +309,7 @@ def simulate(
                     "room": ACT_ROOM[cur],
                     "door_open": decision_door_open,
                 }
+
             rows.append(row)
             prev = cur
     return rows

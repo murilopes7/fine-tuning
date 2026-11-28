@@ -1,0 +1,54 @@
+{
+  "split": "val",
+  "A0": {
+    "n": 288,
+    "exact_action_match": 0.53125,
+    "next_room_accuracy": 0.010416666666666666,
+    "format_validity": 1.0,
+    "non_idle_n": 135,
+    "non_idle_exact_action_match": 0.0,
+    "macro_f1": 0.0,
+    "f1_per_class": {
+      "climate.house=16": 0.0,
+      "climate.house=21.5": 0.0,
+      "light.bathroom=off": 0.0,
+      "light.bathroom=on": 0.0,
+      "light.bedroom=off": 0.0,
+      "light.bedroom=on": 0.0,
+      "light.kitchen=off": 0.0,
+      "light.kitchen=on": 0.0,
+      "light.living=off": 0.0,
+      "light.living=on": 0.0,
+      "lock.front_door=locked": 0.0,
+      "lock.front_door=unlocked": 0.0,
+      "switch.coffee=off": 0.0,
+      "switch.coffee=on": 0.0
+    }
+  },
+  "A0b": {
+    "n": 288,
+    "exact_action_match": 0.53125,
+    "next_room_accuracy": 0.3333333333333333,
+    "format_validity": 1.0,
+    "non_idle_n": 135,
+    "non_idle_exact_action_match": 0.0,
+    "macro_f1": 0.0,
+    "f1_per_class": {
+      "climate.house=16": 0.0,
+      "climate.house=21.5": 0.0,
+      "light.bathroom=off": 0.0,
+      "light.bathroom=on": 0.0,
+      "light.bedroom=off": 0.0,
+      "light.bedroom=on": 0.0,
+      "light.kitchen=off": 0.0,
+      "light.kitchen=on": 0.0,
+      "light.living=off": 0.0,
+      "light.living=on": 0.0,
+      "lock.front_door=locked": 0.0,
+      "lock.front_door=unlocked": 0.0,
+      "switch.coffee=off": 0.0,
+      "switch.coffee=on": 0.0
+    }
+  },
+  "A0b_prediction": "next: bedroom\ndo: []\n"
+}
