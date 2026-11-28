@@ -8,10 +8,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Iterable
 
-try:
-    from .serialize import parse_output, serialize_output
-except ImportError:
-    from serialize import parse_output, serialize_output
+from engine.serialize import parse_output, serialize_output
 
 
 def always_do_nothing(house, *, fixed_next: str = "outside") -> str:

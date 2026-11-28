@@ -1,0 +1,20 @@
+{
+  "split": "val",
+  "A0": {
+    "n": 288,
+    "exact_action_match": 0.53125,
+    "next_room_accuracy": 0.010416666666666666,
+    "format_validity": 1.0,
+    "non_idle_n": 135,
+    "non_idle_exact_action_match": 0.0
+  },
+  "A0b": {
+    "n": 288,
+    "exact_action_match": 0.53125,
+    "next_room_accuracy": 0.3333333333333333,
+    "format_validity": 1.0,
+    "non_idle_n": 135,
+    "non_idle_exact_action_match": 0.0
+  },
+  "A0b_prediction": "next: bedroom\ndo: []\n"
+}
